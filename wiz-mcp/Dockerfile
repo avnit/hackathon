@@ -22,6 +22,6 @@ ENV PYTHONUNBUFFERED=1
 ENV PORT=8080
 EXPOSE 8080
 # Run the server with stdio communication
-ENTRYPOINT ["uv", "run", "mcp" "dev" "src/wiz_mcp_server/server.py"]
+ENTRYPOINT [ "uv", "run", "mcp" "dev" "src/wiz_mcp_server/server.py"]
 
 

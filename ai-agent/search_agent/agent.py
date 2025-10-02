@@ -128,7 +128,7 @@ def guardrail_function(callback_context: CallbackContext, llm_request: LlmReques
 # Define wiz agent 
 # PATH_TO_YOUR_MCP_SERVER_SCRIPT = os.path.join(os.path.dirname(__file__), 'wiz-mcp', 'src', 'wiz_mcp_server', 'wiz_mcp_server.py')
 
-wiz_agent_path = Agent(
+wiz_agent = Agent(
     name= "wiz_agent",
     model="gemini-2.5-pro",
     description="You are an Wiz agent that will get the issues from wiz security platform and generate remediation code.",
@@ -142,8 +142,8 @@ wiz_agent_path = Agent(
 )
 
 # Define search agent
-search = Agent(
-    name="ai_agent",
+gemini_agent = Agent(
+    name="gemini_agent",
     model="gemini-2.5-pro",
     description="You will provide intelligence on security issues",
     instruction="You are a helpful assistant that takes infomation from wiz security platform and generates remediation code and emails it to list of users.",
@@ -163,7 +163,7 @@ mail_agent = Agent(
 # Define code pipeline agent that chains the above agents
 search_agent = SequentialAgent(
     name="search_agent",
-    sub_agents=[wiz_agent_path,search, mail_agent], 
+    sub_agents=[wiz_agent,gemini_agent, mail_agent], 
     description="Executes a sequence of search , reviewing, and refactoring.",
     # The agents will run in the order provided: serch -> wiz_agent_path -> Mail agent 
 )

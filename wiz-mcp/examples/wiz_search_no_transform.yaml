@@ -1,0 +1,11 @@
+query: "how many vms do i have"
+limit: 10
+project_id: "*"
+fetch_total_count: true
+ctx_original_prompt: "I need to know how many virtual machines are in my environment"
+ctx_model_id: "test-model"
+ctx_execution_environment: "test"
+
+# Override the default output transformation to disable it
+output_transformation:
+  disabled: true

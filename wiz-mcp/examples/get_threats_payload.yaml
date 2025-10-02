@@ -1,0 +1,11 @@
+# Example payload for the get_threats tool
+first: 20
+status: ["OPEN"]
+severity: ["HIGH", "CRITICAL"]
+created_in_last_days: 30
+order_by_field: "CREATED_AT"
+order_by_direction: "DESC"
+include_threat_detection_details: true
+include_cloud_accounts: true
+include_multiple_source_rules: true
+include_threat_center_actors: true

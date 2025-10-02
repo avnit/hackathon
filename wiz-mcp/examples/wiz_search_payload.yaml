@@ -1,0 +1,7 @@
+query: "show me all vulnerable EC2 instances"
+limit: 10
+project_id: "*"
+fetch_total_count: true
+ctx_original_prompt: "I need to find all vulnerable EC2 instances in my environment"
+ctx_model_id: "Unknown"
+ctx_execution_environment: "end_to_end_tests"

@@ -1,0 +1,16 @@
+method: tools/call
+params:
+  name: wiz_search
+  arguments:
+    query: find all vulnerability
+    limit: 10
+    project_id: "*"
+    fetch_total_count: true
+    output_transformation: null
+    after: null
+    generated_query: null
+    ctx_original_prompt: null
+    ctx_model_id: null
+    ctx_execution_environment: null
+  _meta:
+    progressToken: 2

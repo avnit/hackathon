@@ -1,0 +1,180 @@
+"""
+# Python 3.9+
+pip(3) install requests
+"""
+import base64
+import json
+import requests
+import os
+from dotenv import load_dotenv
+load_dotenv()
+# Standard headers
+HEADERS_AUTH = {"Content-Type": "application/x-www-form-urlencoded"}
+HEADERS = {"Content-Type": "application/json"}
+
+CLIENT_ID = os.getenv("WIZ_CLIENT_ID")
+CLIENT_SECRET = os.getenv("WIZ_CLIENT_SECRET")
+
+
+
+# Uncomment the following section to define the proxies in your environment,
+#   if necessary:
+# http_proxy  = "http://"+user+":"+passw+"@x.x.x.x:abcd"
+# https_proxy = "https://"+user+":"+passw+"@y.y.y.y:abcd"
+# proxyDict = {
+#     "http"  : http_proxy,
+#     "https" : https_proxy
+# }
+
+# The GraphQL query that defines which data you wish to fetch.
+QUERY = """
+    # Welcome to Wiz API Explorer!
+    #
+    # This is our in-browser tool for writing & testing GraphQL API queries.
+    #
+    # IMPORTANT NOTE:
+    # Queries & mutations you run here are executed against your environment
+    # and will have real effects on your data (e.g. add project).
+    #
+    # Type queries into this side of the screen, and you will see intelligent
+    # typeaheads aware of the current GraphQL type schema and live syntax and
+    # validation errors highlighted within the text.
+    #
+    # Keyboard shortcuts:
+    #  - Run Query:  Ctrl-Enter (or press the play button above)
+    #  - Auto Complete:  Ctrl-Space (or just start typing)
+    #
+    # Below is an example query that fetches all your open & in-progress issues:
+    #
+    query ExampleIssuesQuery {
+      issuesV2(
+        first: 10
+        filterBy: { status: [OPEN, IN_PROGRESS] }
+        orderBy: { direction: DESC, field: SEVERITY }
+      ) {
+        totalCount
+        nodes {
+          id
+          severity
+          entity {
+            id
+            name
+            type
+          }
+          sourceRules {
+            name
+          }
+        }
+      }
+    }
+"""
+
+# The variables sent along with the above query
+VARIABLES = {}
+
+
+def query_wiz_api(query, variables, dc) -> str:
+    """Query Wiz API for the given query data schema"""
+
+    data = {"variables": variables, "query": query}
+
+    try:
+        # Uncomment the next first line and comment the line after that
+        # to run behind proxies
+        # result = requests.post(url=f"https://api.{dc}.app.wiz.io/graphql",
+        #                        json=data, headers=HEADERS, proxies=proxyDict, timeout=180)
+        result = requests.post(url=f"https://api.{dc}.app.wiz.io/graphql",
+                               json=data, headers=HEADERS, timeout=180)
+
+    except requests.exceptions.HTTPError as e:
+        print(f"<p>Wiz-API-Error (4xx/5xx): {str(e)}</p>")
+        return str(e)
+
+    except requests.exceptions.ConnectionError as e:
+        print(f"<p>Network problem (DNS failure, refused connection, etc): {str(e)}</p>")
+        return str(e)
+
+    except requests.exceptions.Timeout as e:
+        print(f"<p>Request timed out: {str(e)}</p>")
+        return str(e)
+
+    return result.json()
+
+
+def request_wiz_api_token(client_id, client_secret):
+    """Retrieve an OAuth access token to be used against Wiz API"""
+
+    auth_payload = {
+      'grant_type': 'client_credentials',
+      'audience': 'wiz-api',
+      'client_id': client_id,
+      'client_secret': client_secret
+    }
+    try:
+        # Uncomment the next first line and comment the line after that
+        # to run behind proxies
+        # response = requests.post(url="https://auth.app.wiz.io/oauth/token",
+        #                         headers=HEADERS_AUTH, data=auth_payload,
+        #                         proxies=proxyDict, timeout=180)
+        response = requests.post(url="https://auth.app.wiz.io/oauth/token",
+                                headers=HEADERS_AUTH, data=auth_payload, timeout=180)
+
+    except requests.exceptions.HTTPError as e:
+        print(f"<p>Error authenticating to Wiz (4xx/5xx): {str(e)}</p>")
+        return e
+
+    except requests.exceptions.ConnectionError as e:
+        print(f"<p>Network problem (DNS failure, refused connection, etc): {str(e)}</p>")
+        return e
+
+    except requests.exceptions.Timeout as e:
+        print(f"<p>Request timed out: {str(e)}</p>")
+        return e
+
+    try:
+        response_json = response.json()
+        token = response_json.get('access_token')
+        if not token:
+            message = f"Could not retrieve token from Wiz: {response_json.get('message')}"
+            raise ValueError(message)
+    except ValueError as exception:
+        message = f"Could not parse API response {exception}. Check Service Account details " \
+                    "and variables"
+        raise ValueError(message) from exception
+
+    response_json_decoded = json.loads(
+        base64.standard_b64decode(pad_base64(token.split(".")[1]))
+    )
+
+    response_json_decoded = json.loads(
+        base64.standard_b64decode(pad_base64(token.split(".")[1]))
+    )
+    dc = response_json_decoded["dc"]
+
+    return token, dc
+
+
+def pad_base64(data):
+    """Makes sure base64 data is padded"""
+    missing_padding = len(data) % 4
+    if missing_padding != 0:
+        data += "=" * (4 - missing_padding)
+    return data
+
+
+def main():
+    """Main function"""
+
+    print("Getting token.")
+    token, dc = request_wiz_api_token(CLIENT_ID, CLIENT_SECRET)
+    HEADERS["Authorization"] = "Bearer " + token
+
+    result = query_wiz_api(QUERY, VARIABLES, dc)
+    print(result)  # your data is here!
+
+
+
+
+if __name__ == '__main__':
+    main()
+

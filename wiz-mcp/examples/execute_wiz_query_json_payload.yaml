@@ -1,0 +1,17 @@
+limit: 50
+query: |
+  {
+    "select": true,
+    "type": ["ENDPOINT"],
+    "relationships": [
+      {
+        "type": [
+          {"type": "HAS_DATA_FINDING"}
+        ],
+        "with": {
+          "type": ["DATA_FINDING"],
+          "select": true
+        }
+      }
+    ]
+  }

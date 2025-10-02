@@ -1,0 +1,80 @@
+name: get_kubernetes_clusters
+description: Retrieve Kubernetes clusters from Wiz with optional filtering
+
+# GraphQL query definition
+gql_query: |
+  query KubernetesClusters($first: Int, $filterBy: KubernetesClusterFilters) {
+    kubernetesClustersList(first: $first, filterBy: $filterBy) {
+      nodes {
+        id
+        name
+        cloudProvider
+        region
+        status
+        version
+        nodeCount
+        createdAt
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+      totalCount
+    }
+  }
+
+# GraphQL mapping definitions
+gql_mapping:
+  query_name: kubernetesClustersList
+  input_mapping:
+    limit:
+      path: first
+      description: "Maximum number of clusters to return"
+    cloud_provider:
+      path: filterBy.cloudProvider
+      description: "Filter by cloud provider"
+    status:
+      path: filterBy.status
+      description: "Filter by cluster status"
+  output_mapping:
+    clusters:
+      path: nodes[]
+      fields:
+        id: id
+        name: name
+        cloud_provider: cloudProvider
+        region: region
+        status: status
+        version: version
+        node_count: nodeCount
+        created_at: createdAt
+    page_info:
+      path: pageInfo
+      fields:
+        has_next_page: hasNextPage
+        end_cursor: endCursor
+    total_count: totalCount
+
+# Input parameter definitions
+input_params:
+  limit:
+    type: integer
+    description: "Maximum number of clusters to return"
+    default: 50
+    minimum: 1
+    maximum: 1000
+    required: false
+  cloud_provider:
+    type: string
+    description: "Filter by cloud provider (AWS, GCP, AZURE)"
+    required: false
+    enum: ["AWS", "GCP", "AZURE"]
+  status:
+    type: string
+    description: "Filter by cluster status (ACTIVE, INACTIVE)"
+    required: false
+    enum: ["ACTIVE", "INACTIVE"]
+
+# Default variables
+default_variables:
+  first: 50

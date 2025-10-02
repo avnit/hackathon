@@ -1,0 +1,94 @@
+name: ToolName
+description: Description of the tool
+# Optional: Set to true to disable this tool (default: false)
+# disabled: true
+gql_query: |
+  query QueryName($filterBy: FilterType, $first: Int, $after: String) {
+    result(
+      filterBy: $filterBy
+      first: $first
+      after: $after
+    ) {
+      nodes {
+        id
+        name
+        # Add other fields as needed
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+    }
+  }
+gql_mapping:
+  query_name: result
+  input_mapping:
+    # Map input parameters to GraphQL variables
+    first: first
+    search:
+      path: filterBy.search
+      description: "Free text search on resource name or ID. Example: \"s3 bucket\""
+    status:
+      path: filterBy.status
+      description: "Filter by status. Possible values: ACTIVE, INACTIVE. Example: [\"ACTIVE\"]"
+    type:
+      path: filterBy.type
+      description: "Filter by resource type. Example: [\"VIRTUAL_MACHINE\"]"
+    cursor: after
+  output_mapping:
+    items:
+      path: nodes[]
+      fields:
+        id: id
+        name: name
+        # Map other fields as needed
+    has_next_page: pageInfo.hasNextPage
+    end_cursor: pageInfo.endCursor
+input_params:
+  first:
+    type: integer
+    description: "Maximum number of results to return. Range: 1-500. Default: 10. Example: 20"
+    required: true
+    default: 10
+  search:
+    type: string
+    description: "Free text search on resource name or ID. Example: \"s3 bucket\""
+    required: false
+  status:
+    type: array[string]
+    description: "Filter by status. Possible values: ACTIVE, INACTIVE. Example: [\"ACTIVE\"]"
+    required: false
+    allowed_values:
+      - ACTIVE
+      - INACTIVE
+  type:
+    type: array[string]
+    description: "Filter by resource type. Example: [\"VIRTUAL_MACHINE\"]"
+    required: false
+  cursor:
+    type: string
+    description: "Pagination cursor for fetching next page"
+    required: false
+output_fields:
+  items:
+    type: array[object]
+    description: List of results
+    fields:
+      id:
+        type: string
+        description: Resource ID
+      name:
+        type: string
+        description: Resource name
+      # Add other fields as needed
+  has_next_page:
+    type: boolean
+    description: Whether there are more results available
+  end_cursor:
+    type: string
+    description: Cursor for fetching the next page
+default_variables:
+  # Default variables to include in every request
+  orderBy:
+    field: CREATED_AT
+    direction: DESC

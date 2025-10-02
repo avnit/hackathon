@@ -1,0 +1,4 @@
+# Example payload for the get_kubernetes_clusters tool
+limit: 10
+cloud_provider: "AWS"
+status: "ACTIVE"

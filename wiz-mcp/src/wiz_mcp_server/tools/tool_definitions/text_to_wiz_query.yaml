@@ -1,0 +1,32 @@
+name: text_to_wiz_query
+disabled: true
+description: Convert natural language queries into Wiz GraphQL queries using AI.
+
+# GraphQL query definition
+gql_query: |
+  query AskAiGraphQuery($input: AiGraphQueryInput!) {
+    aiGraphQuery(input: $input) {
+      aiGraphQueryResult {
+        id
+        graphQueryJson
+      }
+    }
+  }
+
+# GraphQL mapping definitions
+gql_mapping:
+  query_name: aiGraphQuery
+  input_mapping:
+    query:
+      path: input.query
+      description: "Natural language query to convert to GraphQL"
+  output_mapping:
+    id: aiGraphQueryResult.id
+    graph_query_json: aiGraphQueryResult.graphQueryJson
+
+# Input parameter definitions
+input_params:
+  query:
+    type: string
+    description: "Natural language description of the query you want to execute. Example: 'Show me all vulnerabilities on EC2 machines'"
+    required: true

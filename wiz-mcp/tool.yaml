@@ -1,0 +1,70 @@
+name: wiz-mcp-server
+description: A Model Context Protocol (MCP) server for the Wiz API that allows you to interact with the Wiz platform using natural language.
+version: 0.1.0
+contact_email: info@wiz.io
+entrypoint: wiz_mcp_server:get_server
+input_schema:
+  type: object
+  properties:
+    query:
+      type: string
+      description: The natural language query to send to the Wiz API.
+    conversation_id:
+      type: string
+      description: The ID of the conversation to continue. If not provided, a new conversation will be created.
+  required:
+    - query
+tools:
+  - name: ai_assistant_send_message
+    description: Interact with the Wiz AI Assistant to ask security questions about your tenant.
+    input_schema:
+      type: object
+      properties:
+        query:
+          type: string
+          description: The natural language query to send to the AI Assistant.
+        conversation_id:
+          type: string
+          description: The ID of the conversation to continue. If not provided, a new conversation will be created.
+      required:
+        - query
+  - name: ai_graph_query
+    description: Generate a GraphQL query from natural language.
+    input_schema:
+      type: object
+      properties:
+        query:
+          type: string
+          description: The natural language query to convert to a GraphQL query.
+      required:
+        - query
+  - name: get_issues
+    description: Retrieve security issues from the Wiz platform using natural language.
+    input_schema:
+      type: object
+      properties:
+        query:
+          type: string
+          description: The natural language query to retrieve issues.
+      required:
+        - query
+  - name: pull_cloud_resources
+    description: Retrieve cloud resources from the Wiz platform using natural language.
+    input_schema:
+      type: object
+      properties:
+        query:
+          type: string
+          description: The natural language query to retrieve cloud resources.
+      required:
+        - query
+  - name: get_vulnerability_findings
+    description: Retrieve vulnerability findings from the Wiz platform using natural language.
+    input_schema:
+      type: object
+      properties:
+        query:
+          type: string
+          description: The natural language query to retrieve vulnerability findings.
+      required:
+        - query

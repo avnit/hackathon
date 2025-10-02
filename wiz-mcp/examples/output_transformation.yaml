@@ -1,0 +1,41 @@
+query:
+  type: "VM"
+limit: 5
+project_id: "*"
+
+fetch_total_count: true
+
+# Override the default output transformation
+output_transformation:
+  # Global transformations
+  max_array_size: 10  # Limit all arrays to max 10 items
+  max_text_length: 100  # Limit all text fields to max 100 characters
+
+  # Field-specific array limits
+  field_array_limits:
+    "graphSearch.nodes": 5  # Limit the nodes array to 5 items
+    "graphSearch.nodes.entities.technologies": 3  # Limit technologies array to 3 items
+
+  # Field-specific text limits
+  field_text_limits:
+    "graphSearch.nodes.entities.properties.description": 50  # Limit description to 50 chars
+
+  # Keep only boolean fields from these paths
+  keep_only_boolean_paths:
+    - securityControls
+    - tags
+
+  # Keep only these fields
+  keep_only_fields:
+    - graphSearch.totalCount
+    - graphSearch.pageInfo.endCursor
+    - graphSearch.nodes.entities.id
+    - graphSearch.nodes.entities.name
+    - graphSearch.nodes.entities.type
+    - graphSearch.nodes.entities.properties.operatingSystem
+    - graphSearch.nodes.entities.properties.osVersion
+    - graphSearch.nodes.entities.properties.ipAddress
+
+  # Remove these fields from the result of keep_only_fields
+  remove_fields:
+    - graphSearch.nodes.entities.properties.ipAddress

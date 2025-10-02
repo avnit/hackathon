@@ -162,11 +162,11 @@ mail_agent = Agent(
 
 # Define code pipeline agent that chains the above agents
 code_pipeline_agent = SequentialAgent(
-    name="CodePipelineAgent",
+    name="search_agent",
     sub_agents=[wiz_agent_path,search, mail_agent], 
     description="Executes a sequence of search , reviewing, and refactoring.",
     # The agents will run in the order provided: serch -> wiz_agent_path -> Mail agent 
 )
 
 # For ADK tools compatibility, the root agent must be named `root_agent`
-root_agent = code_pipeline_agent
+root_agent = search_agent

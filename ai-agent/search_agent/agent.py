@@ -137,8 +137,10 @@ wiz_agent = Agent(
     tools=[
         MCPToolset(
             connection_params=SseServerParams(
-                url="https://wiz-mcp-server-656808947129.us-central1.run.app/sse"            
-            ) )]       
+                url="http://localhost:8001/sse"
+            )
+        )
+    ]
 )
 
 # Define search agent

@@ -1,0 +1,12 @@
+limit: 50
+query:
+  type:
+    - ENDPOINT
+  select: true
+  relationships:
+    - type:
+        - type: HAS_DATA_FINDING
+      with:
+        type:
+          - DATA_FINDING
+        select: true

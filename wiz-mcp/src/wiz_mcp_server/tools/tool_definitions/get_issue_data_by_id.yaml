@@ -1,0 +1,95 @@
+name: get_issue_data_by_id
+description: >
+  Retrieve detailed information about a specific security issue from Wiz. This tool should ONLY be used if the user provides a specific issue ID. Examples of when to use: "Get details for issue fffc3457-96b1-4d14-ab56-474bc6a3e885", "Show me information about issue ID xyz123"
+
+# GraphQL query definition
+gql_query: |
+  query IssueDrawer($issueId: ID!) {
+    issue(id: $issueId) {
+      id
+      description
+      sourceRule {
+        name
+      }
+      evidenceQuery
+      projects {
+        id
+        name
+        cloudAccountLinks {
+          cloudAccount {
+            id
+            name
+          }
+        }
+      }
+      entitySnapshot {
+        id
+        name
+        nativeType
+        type
+        subscriptionId
+        subscriptionName
+        subscriptionExternalId
+        cloudPlatform
+      }
+      remediationStrategies {
+        id
+        name
+        category {
+          id
+        }
+        targetResources {
+          id
+          name
+        }
+        canSelectMultipleResources
+      }
+
+      threatDetectionDetails {
+          eventOrigin
+          detections(first: 20) {
+            totalCount
+            nodes {
+              ruleMatch {
+                rule {
+                  name
+                }
+              }
+              description
+            }
+          }
+          insights(first: 10) {
+            nodes {
+              description
+              score
+            }
+          }
+          cloudEventGroups(first: 100) {
+            nodes {
+              firstEventAt
+              lastEventAt
+              totalCount
+              origin
+              name
+              description
+              cloudEvents {
+                description
+              }
+            }
+          }
+        }
+    }
+  }
+
+# GraphQL mapping definitions
+gql_mapping:
+  query_name: issue
+  input_mapping:
+    issue_id: issueId
+
+# Input parameter definitions
+input_params:
+  issue_id:
+    type: string
+    description: "The unique identifier of the security issue to retrieve. Example: \"fffc3457-96b1-4d14-ab56-474bc6a3e885\""
+    required: true

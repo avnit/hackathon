@@ -1,0 +1,336 @@
+Metadata-Version: 2.4
+Name: wiz-mcp-server
+Version: 0.1.0
+Summary: A Model Context Protocol (MCP) server for the Wiz API
+Author-email: Wiz Security <info@wiz.io>
+License: MIT
+Project-URL: Homepage, https://github.com/wiz-sec/wiz-mcp
+Project-URL: Bug Tracker, https://github.com/wiz-sec/wiz-mcp/issues
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+License-File: LICENSE
+License-File: NOTICE.txt
+Requires-Dist: mcp[cli]==1.6.0
+Requires-Dist: httpx==0.28.1
+Requires-Dist: python-dotenv==1.1.0
+Requires-Dist: pyyaml==6.0.2
+Dynamic: license-file
+
+# Wiz MCP Server
+
+A Model Context Protocol (MCP) server for the Wiz cloud security platform.
+
+## Getting Started
+
+### Prerequisites
+
+- Python 3.10 or higher
+- Wiz API credentials (client ID and client secret)
+
+### Environment Configuration
+
+Create a `.env` file with your Wiz API credentials:
+```
+WIZ_CLIENT_ID=d3i2kqkz65d6tktv4rytwuyxoykynonqbb4v77ebae4owsjsc6iwc
+WIZ_CLIENT_SECRET=F34qkx0SvRKMAvA7xiSrhDtAkhQK26Z5xh4UeikBWaHwrEarPcw9LuiEUBZYTU0B
+```
+
+The server will look for this `.env` file in the following locations (in order):
+
+1. The path specified with the `WIZ_DOTENV_PATH` environment variable
+2. The current working directory
+3. The `src/wiz_mcp_server` directory
+4. Container Environment: The ENV_FILE environment variable passed to the container
+
+### Installation
+
+There are several ways to set up and run the Wiz MCP Server:
+
+#### Option 1: Using UV (Recommended)
+
+Install [uv](https://github.com/astral-sh/uv) if you haven't already.
+
+#### Option 2: Using Python with Virtual Environment
+
+1. Create and activate a virtual environment:
+```bash
+python -m venv venv
+source venv/bin/activate
+```
+
+2. Install the package in development mode:
+```bash
+pip install -e .
+```
+
+#### Option 3: Using Docker
+
+You can build and run the Wiz MCP Server using Docker:
+
+```bash
+# Build the Docker image
+docker build -t wiz-mcp-server .
+
+# Run the container
+docker run --env-file $ENV_FILE -i --rm wiz-mcp-server
+```
+
+### Running the Server
+
+#### Option 1: Using UV (Recommended)
+
+Run the server with UV:
+```bash
+# Run with MCP Inspector for development
+WIZ_DOTENV_PATH=/path/to/your/.env uv run mcp run src/wiz_mcp_server/server.py
+```
+
+#### Option 2: Using Python with Virtual Environment
+
+```bash
+# Run the server
+python src/wiz_mcp_server/server.py
+```
+
+You can also specify command-line arguments:
+```bash
+python src/wiz_mcp_server/server.py --client-id your_client_id --client-secret your_client_secret
+```
+
+Specify a custom .env file location:
+```bash
+python src/wiz_mcp_server/server.py --env-file /path/to/your/.env
+```
+
+Or use an environment variable to specify the .env file location:
+```bash
+WIZ_DOTENV_PATH=/path/to/your/.env python src/wiz_mcp_server/server.py
+```
+
+#### Option 3: Using Docker
+
+You can build and run the Wiz MCP Server using Docker:
+
+```bash
+docker run -i --rm --env-file /path/to/your/.env wiz-mcp-server
+```
+
+Or use explicit environment variables
+```bash
+docker run -i --rm -e WIZ_CLIENT_ID=$WIZ_CLIENT_ID -e WIZ_CLIENT_SECRET=$WIZ_CLIENT_SECRET wiz-mcp-server
+```
+
+### Integration with AI Assistants
+
+#### Claude Desktop Integration
+
+You can integrate the Wiz MCP Server with Claude Desktop by adding it to your `claude_desktop_config.json`:
+
+Local:
+```json
+{
+  "mcpServers": {
+    "Wiz MCP Server": {
+      "command": "/path/to/your/.local/bin/uv",
+      "args": [
+        "--directory",
+        "/path/to/your/wiz-mcp/src/wiz_mcp_server",
+        "run",
+        "--with",
+        "mcp[cli]",
+        "mcp",
+        "run",
+        "server.py"
+      ]
+    }
+  }
+}
+```
+Container:
+```json
+{
+  "mcpServers": {
+    "Wiz MCP Server": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "wiz-mcp-server"
+      ]
+    }
+  }
+}
+```
+
+#### Cline Integration
+
+For Cline users, you can add the Wiz MCP Server to your `cline_mcp_settings.json` file:
+
+```json
+{
+  "mcpServers": {
+    "Wiz MCP Server": {
+      "disabled": false,
+      "timeout": 60,
+      "command": "/path/to/your/.local/bin/uv",
+      "args": [
+        "--directory",
+        "/path/to/your/wiz-mcp/src/wiz_mcp_server",
+        "run",
+        "--with",
+        "mcp[cli]",
+        "mcp",
+        "run",
+        "server.py"
+      ],
+      "env": {
+        "WIZ_CLIENT_ID": "your_client_id",
+        "WIZ_CLIENT_SECRET": "your_client_secret",
+        "WIZ_DOTENV_PATH": "/path/to/your/.env"  # Optional: specify .env file location
+      },
+      "transportType": "stdio"
+    }
+  }
+}
+```
+Container:
+```json
+{
+  "mcpServers": {
+    "Wiz MCP Server": {
+      "disabled": false,
+      "timeout": 60,
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "wiz-mcp-server"
+      ],
+      "env": {
+        "WIZ_CLIENT_ID": "your_client_id",
+        "WIZ_CLIENT_SECRET": "your_client_secret",
+        "WIZ_DOTENV_PATH": "/path/to/your/.env"  # Optional: specify .env file location
+      },
+      "transportType": "stdio"
+    }
+  }
+}
+```
+
+### Testing with MCP Inspector
+
+You can test the Wiz MCP Server using the MCP Inspector, which provides an interactive web interface for exploring and testing MCP tools:
+
+```bash
+# Run the server with the MCP Inspector
+WIZ_DOTENV_PATH=/path/to/your/.env uv run mcp dev src/wiz_mcp_server/server.py
+```
+
+This will start the server and open the MCP Inspector in your browser, allowing you to:
+- Browse all available resources
+- Execute resources with different parameters
+- View the responses and any errors
+- Debug your resources interactively
+
+## Running MCP over SSE
+You can run your MCP server over SSE by appending `-t sse`, keep in mind that this can expose you to [additional risk](https://modelcontextprotocol.io/docs/concepts/transports#security-warning%3A-dns-rebinding-attacks) and you should avoid binding to defaults.
+
+```bash
+# Python
+FASTMCP_HOST=127.0.0.1 FASTMCP_PORT=8000 WIZ_DOTENV_PATH=/path/to/your/.env uv run mcp run src/wiz_mcp_server/server.py -t sse
+
+# Docker
+docker run -i --rm -p 8000 wiz-mcp-server -t sse
+```
+
+## Creating Custom Tools
+
+The Wiz MCP Server supports dynamic tool registration, which allows you to define tools in a declarative way using YAML files. This means you can create new tools without writing any Python code - you just need to know which GraphQL query you want to run and which parameters you want to expose.
+
+To create and test your own tools:
+
+1. Create a YAML file that defines your tool
+2. Create a payload file with test parameters
+3. Execute your tool using the `--execute-tool` command
+
+For detailed instructions and examples, see the [Creating and Testing Custom Tools](docs/creating_tools.md) guide.
+
+### Output Transformation
+
+The Wiz MCP Server supports configurable output transformations, allowing you to control which fields are included or excluded from the API responses. This is particularly useful for large responses like Graph Search results, where you might want to filter out unnecessary fields to reduce the payload size.
+
+For detailed information about output transformations, see the [Output Transformation](docs/output_transformation.md) guide.
+
+### Example: Testing a Custom Tool
+
+You can execute a specific tool directly without starting the server:
+
+```bash
+WIZ_DOTENV_PATH=/path/to/your/.env uv run --with mcp[cli] python src/wiz_mcp_server/server.py --execute-tool tool_name --payload path/to/payload.yaml
+```
+
+The payload file can be in either YAML or JSON format. Example payload files are provided in the `examples` directory.
+This makes it easy to iterate and refine your tools without restarting the server or writing any Python code.
+
+## Remote Tool Definitions
+
+The Wiz MCP Server can download tool definitions from a remote source at startup. This allows you to always have the latest tool definitions without updating the server code.
+
+By default, remote tool definitions are enabled. You can disable remote tool definitions or configure the source URL using the following options:
+
+```bash
+# Disable remote tool definitions
+python src/wiz_mcp_server/server.py --disable-remote-tools
+
+# Using environment variable
+WIZ_MCP_REMOTE_TOOLS_DISABLED=true python src/wiz_mcp_server/server.py
+
+# Specify a custom URL for remote tool definitions
+python src/wiz_mcp_server/server.py --remote-tools-url https://example.com/wiz-mcp.zip
+
+# Using environment variable
+WIZ_MCP_REMOTE_TOOLS_URL=https://example.com/wiz-mcp.zip python src/wiz_mcp_server/server.py
+```
+
+When remote tool definitions are enabled, the server will attempt to download them from the specified URL. You can provide a URL in one of the following ways:
+
+1. Use the [Wiz MCP integration](https://app.wiz.io/settings/automation/integrations/new/wiz-mcp), which will automatically use the appropriate URL for your organization
+2. Explicitly set the URL using the `--remote-tools-url` flag or `WIZ_MCP_REMOTE_TOOLS_URL` environment variable
+
+If no URL is provided or the download fails, the server will fall back to using the local tool definitions.
+
+## Telemetry
+
+The Wiz MCP Server collects anonymous usage metadata to help improve functionality and user experience. All sensitive and personal information is automatically redacted to protect your privacy. This data helps identify common usage patterns and potential areas for enhancement.
+
+You can opt out of collecting telemetry data by using one of the following methods:
+
+```bash
+# Using command-line argument
+python src/wiz_mcp_server/server.py --disable-telemetry
+
+# Using environment variable
+WIZ_MCP_DISABLE_TELEMETRY=true python src/wiz_mcp_server/server.py
+```
+
+## Security
+
+For information about reporting security vulnerabilities in this project, please see [SECURITY.md](SECURITY.md).
+
+## Acknowledgments
+
+This project uses the MCP Server SDK developed by the ModelContextProtocol project,
+available at https://github.com/modelcontextprotocol/servers, licensed under the MIT License.
+
+## License
+
+The Wiz MCP server is licensed under the MIT License. This means you are free to use, modify, and distribute the software, subject to the terms and conditions of the MIT License. For more details, please see the LICENSE file in the project repository.

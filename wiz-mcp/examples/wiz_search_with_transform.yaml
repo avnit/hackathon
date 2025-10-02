@@ -1,0 +1,18 @@
+query: "how many vms do i have"
+limit: 10
+project_id: "*"
+fetch_total_count: true
+ctx_original_prompt: "I need to know how many virtual machines are in my environment"
+ctx_model_id: "test-model"
+ctx_execution_environment: "test"
+
+# Override the default output transformation
+output_transformation:
+  max_array_size: 5
+  max_text_length: 100
+  keep_only_fields:
+    - generated_query
+    - query_results.data.graphSearch.totalCount
+    - query_results.data.graphSearch.nodes.entities.id
+    - query_results.data.graphSearch.nodes.entities.name
+    - query_results.data.graphSearch.nodes.entities.type

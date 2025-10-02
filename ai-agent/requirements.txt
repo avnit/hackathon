@@ -1,0 +1,13 @@
+google-cloud-aiplatform
+uv
+google-cloud-modelarmor
+google-adk
+pydantic==2.11.7
+cloudpickle==3.1.1
+beautifulsoup4
+google-adk
+html2text
+mcp[cli]
+requests
+deprecated
+sseclient-py

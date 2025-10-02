@@ -1,0 +1,202 @@
+name: execute_wiz_query
+disabled: true
+description: Execute a Wiz Graph Query and return the results with optional path information. Don't run other tools after this tool, only if specified.
+
+# GraphQL query definition
+gql_query: |
+  query GraphSearch(
+    $query: GraphEntityQueryInput
+    $controlId: ID
+    $projectId: String!
+    $first: Int
+    $after: String
+    $fetchTotalCount: Boolean!
+    $quick: Boolean = true
+    $fetchPublicExposurePaths: Boolean = false
+    $fetchInternalExposurePaths: Boolean = false
+    $fetchIssueAnalytics: Boolean = false
+    $fetchLateralMovement: Boolean = false
+    $fetchKubernetes: Boolean = false
+    $fetchCost: Boolean = false
+    $issueId: ID
+  ) {
+    graphSearch(
+      query: $query
+      controlId: $controlId
+      projectId: $projectId
+      first: $first
+      after: $after
+      quick: $quick
+      issueId: $issueId
+    ) {
+      totalCount @include(if: $fetchTotalCount)
+      maxCountReached @include(if: $fetchTotalCount)
+      pageInfo {
+        endCursor
+        hasNextPage
+      }
+      nodes {
+        entities {
+          isRestricted
+          ...PathGraphEntityFragment
+          userMetadata {
+            isInWatchlist
+            isIgnored
+            note
+          }
+          technologies {
+            id
+            icon
+          }
+          ...GraphEntityCost @include(if: $fetchCost)
+          publicExposures(first: 10) @include(if: $fetchPublicExposurePaths) {
+            nodes {
+              ...NetworkExposureFragment
+            }
+          }
+          otherSubscriptionExposures(first: 10) @include(if: $fetchInternalExposurePaths) {
+            nodes {
+              ...NetworkExposureFragment
+            }
+          }
+          otherVnetExposures(first: 10) @include(if: $fetchInternalExposurePaths) {
+            nodes {
+              ...NetworkExposureFragment
+            }
+          }
+          lateralMovementPaths(first: 10) @include(if: $fetchLateralMovement) {
+            nodes {
+              id
+              pathEntities {
+                entity {
+                  ...PathGraphEntityFragment
+                }
+              }
+            }
+          }
+          kubernetesPaths(first: 10) @include(if: $fetchKubernetes) {
+            nodes {
+              id
+              path {
+                ...PathGraphEntityFragment
+              }
+            }
+          }
+        }
+        aggregateCount
+      }
+    }
+  }
+
+  fragment PathGraphEntityFragment on GraphEntity {
+    id
+    name
+    type
+    properties
+    issueAnalytics: issues(filterBy: {status: [IN_PROGRESS, OPEN]}) @include(if: $fetchIssueAnalytics) {
+      highSeverityCount
+      criticalSeverityCount
+    }
+  }
+
+  fragment GraphEntityCost on GraphEntity {
+    monthToDateCost {
+      amortized
+      currencyCode
+    }
+  }
+
+  fragment NetworkExposureFragment on NetworkExposure {
+    id
+    portRange
+    sourceIpRange
+    destinationIpRange
+    path {
+      ...PathGraphEntityFragment
+    }
+    applicationEndpoints {
+      ...PathGraphEntityFragment
+    }
+  }
+
+# GraphQL mapping definitions
+gql_mapping:
+  query_name: graphSearch
+  input_mapping:
+    query:
+      path: query
+      description: "The Wiz graph query to execute"
+    limit:
+      path: first
+      description: "Maximum number of results to return"
+    project_id:
+      path: projectId
+      description: "Project ID to scope the query to. Use '*' for all projects"
+    cursor:
+      path: after
+      description: "Pagination cursor for fetching next page"
+
+    fetch_total_count:
+      path: fetchTotalCount
+      description: "Fetch total count of results, default true"
+  output_transformation:
+    # Set to true to disable output transformation
+    disabled: false
+    # Global transformation options
+    max_array_size: 100  # Limit all arrays to max 100 items
+    max_text_length: 1000  # Limit all text fields to max 1000 characters
+
+    # Keep only boolean fields from these paths
+    keep_only_boolean_paths:
+      - securityControls
+      - tags
+
+    # Keep only these fields
+    keep_only_fields:
+      - graphSearch.totalCount
+      - graphSearch.pageInfo.endCursor
+      - graphSearch.pageInfo.hasNextPage
+      - graphSearch.nodes.entities.id
+      - graphSearch.nodes.entities.name
+      - graphSearch.nodes.entities.type
+      - graphSearch.nodes.entities.properties.description
+      - graphSearch.nodes.entities.properties.externalId
+
+# Input parameter definitions
+input_params:
+  query:
+    type: object
+    description: "The Wiz graph query to execute"
+    required: true
+  limit:
+    type: integer
+    description: "Maximum number of results to return"
+    default: 10
+    minimum: 1
+    maximum: 1000
+    required: false
+  project_id:
+    type: string
+    description: "Project ID to scope the query to. Use '*' for all projects"
+    default: "*"
+    required: false
+
+  fetch_total_count:
+    type: boolean
+    description: "Fetch total count of results, default false, set as default if users asks for the count of objects"
+    default: false
+    required: false
+
+# Default variables
+default_variables:
+  first: 10
+
+  fetchPublicExposurePaths: true
+  fetchInternalExposurePaths: false
+  fetchIssueAnalytics: false
+  fetchLateralMovement: true
+  fetchKubernetes: false
+  projectId: "*"
+  fetchCost: false
+  fetchTotalCount: false
+

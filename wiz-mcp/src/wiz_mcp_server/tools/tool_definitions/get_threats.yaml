@@ -1,0 +1,209 @@
+name: get_threats
+description: >
+  Retrieve threat detection issues from the Wiz platform with detailed information about actors, resources, and detection details and also insights that if they are existing needs to be mentioned. Use this tool ONLY when specifically asked about Wiz Threats or Threat Detections. This tool returns the detailed Threat Detection objects with specialized threat intelligence data. For general security queries or vulnerability searches, use wiz_search instead. Examples of when to use: "Show me all active threats", "Get threat detection details", "List recent threat alerts", "Show me threats in my Production project".
+  
+  When you only need the count of threats matching a query and not the actual threat details, use fetch_total_count=true with first=1 to minimize data transfer.
+
+# GraphQL query definition
+gql_query: |
+  query IssuesTable($filterBy: IssueFilters, $filterScope: IssueFiltersScope, $first: Int, $after: String, $orderBy: IssueOrder, $fetchTotalCount: Boolean = true) {
+    issues: issuesV2(
+      filterBy: $filterBy
+      first: $first
+      after: $after
+      orderBy: $orderBy
+      filterScope: $filterScope
+    ) {
+      nodes {
+        id
+        severity
+        status
+        createdAt
+        cloudAccounts {
+          name
+          externalId
+          cloudProvider
+        }
+        cloudOrganizations {
+          name
+          externalId
+          cloudProvider
+        }
+        threatDetectionDetails {
+          eventOrigin
+          detections(first: 20) {
+            totalCount
+            nodes {
+              ruleMatch {
+                rule {
+                  name
+                }
+              }
+              description
+            }
+          }
+          insights(first: 10) {
+            nodes {
+              description
+              score
+            }
+          }
+          cloudEventGroups(first: 100) {
+            nodes {
+              firstEventAt
+              lastEventAt
+              totalCount
+              origin
+              name
+              description
+              cloudEvents {
+                description
+              }
+            }
+          }
+        }
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+      totalCount @include(if: $fetchTotalCount)
+    }
+  }
+
+# GraphQL mapping definitions
+gql_mapping:
+  query_name: issues
+  input_mapping:
+    first: first
+    cursor: after
+    fetch_total_count: fetchTotalCount
+    # Basic filters
+    project_ids:
+      path: filterBy.project
+      description: "Filter threats by project IDs. Example: [\"83b76efe-a7b6-5762-8a53-8e8f59e68bd8\"]. Do not use this parameter when project_names is provided."
+    severity:
+      path: filterBy.severity
+      description: "Filter threats by severity level. Possible values: CRITICAL, HIGH, MEDIUM, LOW, INFORMATIONAL. Example: [\"HIGH\", \"CRITICAL\"]"
+    status:
+      path: filterBy.status
+      description: "Filter threats by status. Possible values: OPEN, IN_PROGRESS, RESOLVED, REJECTED. Example: [\"OPEN\"]"
+    created_after:
+      path: filterBy.createdAt.after
+      description: "Filter threats created after this date (ISO 8601 format). Example: \"2023-01-01T00:00:00Z\""
+    created_before:
+      path: filterBy.createdAt.before
+      description: "Filter threats created before this date (ISO 8601 format). Example: \"2023-12-31T23:59:59Z\""
+    threat_actor:
+      path: filterBy.threatActor
+      description: "Filter by specific threat actor details"
+    threat_resource:
+      path: filterBy.threatResource
+      description: "Filter by specific threat resource details"
+    # Sorting
+    order_by_field:
+      path: orderBy.field
+      description: "Field to order results by. Possible values: CREATED_AT, UPDATED_AT, SEVERITY. Default is CREATED_AT."
+      default: "CREATED_AT"
+    order_by_direction:
+      path: orderBy.direction
+      description: "Direction to order results. Possible values: ASC, DESC. Default is DESC."
+      default: "DESC"
+    filter_scope:
+      path: filterScope
+      description: "Scope of the filter. Default is ALL_ISSUE_DETECTIONS."
+      default: "ALL_ISSUE_DETECTIONS"
+
+# Input parameter definitions
+input_params:
+  first:
+    type: integer
+    description: "Maximum number of threats to return (1-20)"
+    default: 10
+    required: false
+    validation:
+      min: 1
+      max: 20
+  cursor:
+    type: string
+    description: "Pagination cursor for fetching next page of results"
+    required: false
+  project_ids:
+    type: array[string]
+    description: "Filter threats by project IDs. Example: [\"83b76efe-a7b6-5762-8a53-8e8f59e68bd8\"]. Do not use this parameter when project_names is provided."
+    required: false
+  severity:
+    type: array[string]
+    description: "Filter threats by severity level"
+    required: false
+    allowed_values:
+      - CRITICAL
+      - HIGH
+      - MEDIUM
+      - LOW
+      - INFORMATIONAL
+    example: [ "HIGH", "CRITICAL" ]
+  status:
+    type: array[string]
+    description: "Filter threats by status"
+    required: false
+    allowed_values:
+      - OPEN
+      - IN_PROGRESS
+      - RESOLVED
+      - REJECTED
+    default: [ "OPEN", "IN_PROGRESS" ]
+  created_after:
+    type: string
+    description: "Filter threats created after this date (ISO 8601 format). Example: \"2023-01-01T00:00:00Z\""
+    required: false
+  created_before:
+    type: string
+    description: "Filter threats created before this date (ISO 8601 format). Example: \"2023-12-31T23:59:59Z\""
+    required: false
+  threat_resource:
+    type: object
+    description: "Filter by specific threat resource details"
+    required: false
+  order_by_field:
+    type: string
+    description: "Field to order results by"
+    required: false
+    default: "CREATED_AT"
+    allowed_values:
+      - CREATED_AT
+      - UPDATED_AT
+      - SEVERITY
+  order_by_direction:
+    type: string
+    description: "Direction to order results"
+    required: false
+    default: "DESC"
+    allowed_values:
+      - ASC
+      - DESC
+  filter_scope:
+    type: string
+    description: "Scope of the filter"
+    required: false
+    default: "ALL_ISSUE_DETECTIONS"
+    allowed_values:
+      - ALL_ISSUE_DETECTIONS
+      - LATEST_ISSUE_DETECTION
+  fetch_total_count:
+    type: boolean
+    description: "Whether to fetch the total count of threats matching the query. When you only need the count and not the actual threats, set this to true and set first=1 to minimize data transfer. Default: true"
+    required: false
+    default: true
+
+# Default variables
+default_variables:
+  fetchTotalCount: true
+  first: 10
+  filterBy:
+    status: [ "OPEN", "IN_PROGRESS" ]
+    type: [ "THREAT_DETECTION" ]
+  filterScope: "ALL_ISSUE_DETECTIONS"
+  orderBy:
+    field: "CREATED_AT"
+    direction: "DESC"

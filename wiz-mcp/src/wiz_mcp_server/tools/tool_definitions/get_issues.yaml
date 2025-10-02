@@ -1,0 +1,584 @@
+name: get_issues
+description: >
+  Retrieve security issues from the Wiz platform with comprehensive filtering options. This tool should ONLY be used if the user specifically asks for Wiz Issues or mentions Issue IDs. Use this tool when you need the structured Issue objects from Wiz with their specific metadata, status, severity, and related information. For general security queries, use wiz_search instead. Examples of when to use: "Show me all critical Wiz issues", "List open issues in my environment", "Get issues with status OPEN", "Show me issues in my Production project", "How many issues do I have in my Dev project?"
+  
+  When you only need the count of issues matching a query and not the actual issue details, use fetch_total_count=true with first=1 to minimize data transfer. This is especially useful for answering questions like "How many issues do I have?" or "Count the number of critical issues."
+
+# GraphQL query definition - directly from the API spec
+gql_query: |
+  query IssuesTable($filterBy: IssueFilters, $first: Int, $after: String, $orderBy: IssueOrder, $fetchTotalCount: Boolean = true) {
+    issues: issuesV2(
+      filterBy: $filterBy
+      first: $first
+      after: $after
+      orderBy: $orderBy
+    ) {
+      nodes {
+        id
+        sourceRules {
+          __typename
+          ... on Control {
+            id
+            name
+            controlDescription: description
+            resolutionRecommendation
+            securitySubCategories {
+              title
+              category {
+                name
+                framework {
+                  name
+                }
+              }
+            }
+            risks
+          }
+          ... on CloudEventRule {
+            id
+            name
+            cloudEventRuleDescription: description
+            sourceType
+            type
+            risks
+            securitySubCategories {
+              title
+              category {
+                name
+                framework {
+                  name
+                }
+              }
+            }
+          }
+          ... on CloudConfigurationRule {
+            id
+            name
+            cloudConfigurationRuleDescription: description
+            remediationInstructions
+            serviceType
+            risks
+            securitySubCategories {
+              title
+              category {
+                name
+                framework {
+                  name
+                }
+              }
+            }
+          }
+        }
+        createdAt
+        updatedAt
+        dueAt
+        type
+        resolvedAt
+        statusChangedAt
+        projects {
+          id
+          name
+          slug
+          businessUnit
+          riskProfile {
+            businessImpact
+          }
+        }
+        status
+        severity
+        entitySnapshot {
+          id
+          type
+          nativeType
+          name
+          status
+          cloudPlatform
+          cloudProviderURL
+          providerId
+          region
+          resourceGroupExternalId
+          subscriptionExternalId
+          subscriptionName
+          subscriptionTags
+          tags
+          createdAt
+          externalId
+        }
+        serviceTickets {
+          externalId
+          name
+          url
+        }
+        notes {
+          createdAt
+          updatedAt
+          text
+          user {
+            name
+            email
+          }
+          serviceAccount {
+            name
+          }
+        }
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+      totalCount @include(if: $fetchTotalCount)
+    }
+  }
+
+# GraphQL mapping definitions
+gql_mapping:
+  query_name: issues
+  input_mapping:
+    first: first
+    cursor: after
+    fetch_total_count: fetchTotalCount
+    # Basic filters
+    severity:
+      path: filterBy.severity
+      description: "Filter issues by severity level. Possible values: CRITICAL, HIGH, MEDIUM, LOW, INFORMATIONAL. Example: [\"HIGH\", \"CRITICAL\"]"
+    status:
+      path: filterBy.status
+      description: "Filter issues by status. Possible values: OPEN, IN_PROGRESS, RESOLVED, REJECTED. Example: [\"OPEN\"]"
+    type:
+      path: filterBy.type
+      description: "Filter issues by type. Possible values: TOXIC_COMBINATION, CLOUD_CONFIGURATION. Example: [\"CLOUD_CONFIGURATION\"]"
+    issue_ids:
+      path: filterBy.id
+      description: "Filter issues by specific IDs. Example: [\"fffc3457-96b1-4d14-ab56-474bc6a3e885\"]"
+    search:
+      path: filterBy.search
+      description: "Free text search on issue title or object name. Example: \"s3 bucket\""
+    # Project filters
+    project_names:
+      path: filterBy.project
+      description: "Filter issues by project names. The system will try to find the project IDs by name. Example: [\"My Production Project\", \"My Dev Project\"]"
+    project_ids:
+      path: filterBy.project
+      description: "Filter issues by project IDs. Example: [\"83b76efe-a7b6-5762-8a53-8e8f59e68bd8\"]. Do not use this parameter when project_names is provided."
+    # Framework filters
+    framework_category:
+      path: filterBy.frameworkCategory
+      description: "Filter by security framework IDs. Example: [\"framework-123\"]"
+    stack_layer:
+      path: filterBy.stackLayer
+      description: "Filter issues by stack layer. Possible values: APPLICATION_AND_DATA, CI_CD, SECURITY_AND_IDENTITY, COMPUTE_PLATFORMS, CODE, CLOUD_ENTITLEMENTS, DATA_STORES. Example: [\"CI_CD\"]"
+    # Date filters
+    created_after:
+      path: filterBy.createdAt.after
+      description: "Filter issues created after this date (ISO 8601 format). Example: \"2023-01-01T00:00:00Z\""
+    created_before:
+      path: filterBy.createdAt.before
+      description: "Filter issues created before this date (ISO 8601 format). Example: \"2023-12-31T23:59:59Z\""
+    resolved_after:
+      path: filterBy.resolvedAt.after
+      description: "Filter issues resolved after this date (ISO 8601 format). Example: \"2023-01-01T00:00:00Z\""
+    resolved_before:
+      path: filterBy.resolvedAt.before
+      description: "Filter issues resolved before this date (ISO 8601 format). Example: \"2023-12-31T23:59:59Z\""
+    status_changed_after:
+      path: filterBy.statusChangedAt.after
+      description: "Filter issues with status changed after this date (ISO 8601 format). Example: \"2023-01-01T00:00:00Z\""
+    status_changed_before:
+      path: filterBy.statusChangedAt.before
+      description: "Filter issues with status changed before this date (ISO 8601 format). Example: \"2023-12-31T23:59:59Z\""
+    due_after:
+      path: filterBy.dueAt.after
+      description: "Filter issues due after this date (ISO 8601 format). Example: \"2023-01-01T00:00:00Z\""
+    due_before:
+      path: filterBy.dueAt.before
+      description: "Filter issues due before this date (ISO 8601 format). Example: \"2023-12-31T23:59:59Z\""
+    # Boolean filters
+    has_service_ticket:
+      path: filterBy.hasServiceTicket
+      description: "Filter issues with or without service tickets. Example: true"
+    has_note:
+      path: filterBy.hasNote
+      description: "Filter issues with or without notes. Example: true"
+    has_user_note:
+      path: filterBy.hasUserNote
+      description: "Filter issues with or without user notes. Example: true"
+    has_remediation:
+      path: filterBy.hasRemediation
+      description: "Filter issues with or without remediation. Example: true"
+    has_auto_remediation:
+      path: filterBy.hasAutoRemediation
+      description: "Filter issues with or without auto remediation. Example: true"
+    has_due_date:
+      path: filterBy.hasDueDate
+      description: "Filter issues with or without due date. Example: true"
+    # Entity filters
+    entity_id:
+      path: filterBy.relatedEntity.id
+      description: "Filter issues by a specific entity ID. Example: \"entity-123\""
+    entity_ids:
+      path: filterBy.relatedEntity.ids
+      description: "Filter issues by specific entity IDs. Example: [\"entity-123\", \"entity-456\"]"
+    entity_types:
+      path: filterBy.relatedEntity.type
+      description: "Filter issues by entity types. Example: [\"VIRTUAL_MACHINE\"]"
+    entity_status:
+      path: filterBy.relatedEntity.status
+      description: "Filter issues by entity status. Possible values: Active, Inactive, Error. Example: [\"Active\"]"
+    entity_region:
+      path: filterBy.relatedEntity.region
+      description: "Filter issues by entity region. Example: [\"us-east-1\"]"
+    subscription_ids:
+      path: filterBy.relatedEntity.subscriptionId
+      description: "Filter issues by subscription IDs. Example: [\"sub-123\"]"
+    resource_group_ids:
+      path: filterBy.relatedEntity.resourceGroupId
+      description: "Filter issues by resource group IDs. Example: [\"rg-123\"]"
+    native_types:
+      path: filterBy.relatedEntity.nativeType
+      description: "Filter issues by native types. Example: [\"AWS_EC2_INSTANCE\"]"
+    cloud_platforms:
+      path: filterBy.relatedEntity.cloudPlatform
+      description: "Filter issues by cloud platform. Possible values: AWS, Azure, GCP, Alibaba, AKS, EKS, GKE, Kubernetes, OCI, OKE, OpenShift, vSphere. Example: [\"AWS\"]"
+    # Other filters
+    resolution_reason:
+      path: filterBy.resolutionReason
+      description: "Filter issues by resolution reason. Possible values: CONTROL_CHANGED, CONTROL_DISABLED, CONTROL_DELETED, EXCEPTION, FALSE_POSITIVE, WONT_FIX, OBJECT_DELETED, ISSUE_FIXED. Example: [\"CONTROL_CHANGED\"]"
+    note_contains:
+      path: filterBy.noteContains
+      description: "Search for issues with notes containing specific text. Example: \"fixed\""
+    source_rule_id:
+      path: filterBy.sourceRules.id
+      description: "Filter issues by source rule ID. Example: \"rule-123\""
+    cloud_event_rule_source:
+      path: filterBy.sourceRules.cloudEventRuleSource
+      description: "Filter issues by cloud event rule source. Possible values: WIZ, WIZ_SENSOR, GUARD_DUTY, SECURITY_COMMAND_CENTER, DEFENDER_FOR_CLOUD. Example: [\"WIZ\"]"
+    risk_equals_any:
+      path: filterBy.riskEqualsAny
+      description: "Filter issues by any of the specified risk types. Example: [\"wct-id-4\"]"
+    risk_equals_all:
+      path: filterBy.riskEqualsAll
+      description: "Filter issues that match all specified risk types. Example: [\"wct-id-4\"]"
+    # Ordering
+    order_direction:
+      path: orderBy.direction
+      description: "Order direction. Possible values: ASC, DESC. Example: \"DESC\""
+    order_field:
+      path: orderBy.field
+      description: "Order field. Possible values: ID, SEVERITY, CREATED_AT, RESOLVED_AT, STATUS_CHANGED_AT. Example: \"CREATED_AT\""
+  output_mapping:
+    items:
+      path: nodes[]
+      fields:
+        id: id
+        severity: severity
+        status: status
+        type: type
+        created_at: createdAt
+        updated_at: updatedAt
+        resolved_at: resolvedAt
+        status_changed_at: statusChangedAt
+        due_at: dueAt
+    has_next_page: pageInfo.hasNextPage
+    end_cursor: pageInfo.endCursor
+    total_count: totalCount
+
+
+# Input parameter definitions
+input_params:
+  first:
+    type: integer
+    description: "Maximum number of issues to return. Range: 1-20. Default: 10. Example: 15"
+    required: true
+    default: 10
+    minimum: 1
+    maximum: 20
+  cursor:
+    type: string
+    description: "Pagination cursor for fetching next page"
+    required: false
+  fetch_total_count:
+    type: boolean
+    description: "Whether to fetch the total count of issues matching the query. When you only need the count and not the actual issues, set this to true and set first=1 to minimize data transfer. Default: true"
+    required: false
+    default: true
+  # Basic filters
+  severity:
+    type: array[string]
+    description: "Filter issues by severity level. Possible values: CRITICAL, HIGH, MEDIUM, LOW, INFORMATIONAL. Example: [\"HIGH\", \"CRITICAL\"]"
+    required: false
+    allowed_values:
+      - CRITICAL
+      - HIGH
+      - MEDIUM
+      - LOW
+      - INFORMATIONAL
+  status:
+    type: array[string]
+    description: "Filter issues by status. Possible values: OPEN, IN_PROGRESS, RESOLVED, REJECTED. Example: [\"OPEN\"]"
+    required: false
+    allowed_values:
+      - OPEN
+      - IN_PROGRESS
+      - RESOLVED
+      - REJECTED
+  type:
+    type: array[string]
+    description: "Filter issues by type. Possible values: TOXIC_COMBINATION, CLOUD_CONFIGURATION. Example: [\"CLOUD_CONFIGURATION\"]"
+    required: false
+    allowed_values:
+      - TOXIC_COMBINATION
+      - CLOUD_CONFIGURATION
+  issue_ids:
+    type: array[string]
+    description: "Filter issues by specific IDs. Example: [\"fffc3457-96b1-4d14-ab56-474bc6a3e885\"]"
+    required: false
+  search:
+    type: string
+    description: "Free text search on issue title or object name. Example: \"s3 bucket\""
+    required: false
+  # Project filters
+  project_names:
+    type: array[string]
+    description: "Filter issues by project names. The system will try to find the project IDs by name. If any lookup fails, an error will be returned with details of successful and failed lookups. Example: [\"My Production Project\", \"My Dev Project\"]. Note: If a value looks like a UUID (starts with 'proj-'), it will be used directly without lookup."
+    required: false
+  project_ids:
+    type: array[string]
+    description: "Filter issues by project IDs. Example: [\"83b76efe-a7b6-5762-8a53-8e8f59e68bd8\"]. Do not use this parameter when project_names is provided."
+    required: false
+  # Framework filters
+  framework_category:
+    type: array[string]
+    description: "Filter by security framework IDs. Example: [\"framework-123\"]"
+    required: false
+  stack_layer:
+    type: array[string]
+    description: "Filter issues by stack layer. Possible values: APPLICATION_AND_DATA, CI_CD, SECURITY_AND_IDENTITY, COMPUTE_PLATFORMS, CODE, CLOUD_ENTITLEMENTS, DATA_STORES. Example: [\"CI_CD\"]"
+    required: false
+    allowed_values:
+      - APPLICATION_AND_DATA
+      - CI_CD
+      - SECURITY_AND_IDENTITY
+      - COMPUTE_PLATFORMS
+      - CODE
+      - CLOUD_ENTITLEMENTS
+      - DATA_STORES
+  # Date filters
+  created_after:
+    type: string
+    description: "Filter issues created after this date (ISO 8601 format). Example: \"2023-01-01T00:00:00Z\""
+    required: false
+  created_before:
+    type: string
+    description: "Filter issues created before this date (ISO 8601 format). Example: \"2023-12-31T23:59:59Z\""
+    required: false
+  resolved_after:
+    type: string
+    description: "Filter issues resolved after this date (ISO 8601 format). Example: \"2023-01-01T00:00:00Z\""
+    required: false
+  resolved_before:
+    type: string
+    description: "Filter issues resolved before this date (ISO 8601 format). Example: \"2023-12-31T23:59:59Z\""
+    required: false
+  status_changed_after:
+    type: string
+    description: "Filter issues with status changed after this date (ISO 8601 format). Example: \"2023-01-01T00:00:00Z\""
+    required: false
+  status_changed_before:
+    type: string
+    description: "Filter issues with status changed before this date (ISO 8601 format). Example: \"2023-12-31T23:59:59Z\""
+    required: false
+  due_after:
+    type: string
+    description: "Filter issues due after this date (ISO 8601 format). Example: \"2023-01-01T00:00:00Z\""
+    required: false
+  due_before:
+    type: string
+    description: "Filter issues due before this date (ISO 8601 format). Example: \"2023-12-31T23:59:59Z\""
+    required: false
+  # Boolean filters
+  has_service_ticket:
+    type: boolean
+    description: "Filter issues with or without service tickets. Example: true"
+    required: false
+  has_note:
+    type: boolean
+    description: "Filter issues with or without notes. Example: true"
+    required: false
+  has_user_note:
+    type: boolean
+    description: "Filter issues with or without user notes. Example: true"
+    required: false
+  has_remediation:
+    type: boolean
+    description: "Filter issues with or without remediation. Example: true"
+    required: false
+  has_auto_remediation:
+    type: boolean
+    description: "Filter issues with or without auto remediation. Example: true"
+    required: false
+  has_due_date:
+    type: boolean
+    description: "Filter issues with or without due date. Example: true"
+    required: false
+  # Entity filters
+  entity_id:
+    type: string
+    description: "Filter issues by a specific entity ID. Example: \"entity-123\""
+    required: false
+  entity_ids:
+    type: array[string]
+    description: "Filter issues by specific entity IDs. Example: [\"entity-123\", \"entity-456\"]"
+    required: false
+  entity_types:
+    type: array[string]
+    description: "Filter issues by entity types. Example: [\"VIRTUAL_MACHINE\"]"
+    required: false
+  entity_status:
+    type: array[string]
+    description: "Filter issues by entity status. Possible values: Active, Inactive, Error. Example: [\"Active\"]"
+    required: false
+    allowed_values:
+      - Active
+      - Inactive
+      - Error
+  entity_region:
+    type: array[string]
+    description: "Filter issues by entity region. Example: [\"us-east-1\"]"
+    required: false
+  subscription_ids:
+    type: array[string]
+    description: "Filter issues by subscription IDs. Example: [\"sub-123\"]"
+    required: false
+  resource_group_ids:
+    type: array[string]
+    description: "Filter issues by resource group IDs. Example: [\"rg-123\"]"
+    required: false
+  native_types:
+    type: array[string]
+    description: "Filter issues by native types. Example: [\"AWS_EC2_INSTANCE\"]"
+    required: false
+  cloud_platforms:
+    type: array[string]
+    description: "Filter issues by cloud platform. Possible values: AWS, Azure, GCP, Alibaba, AKS, EKS, GKE, Kubernetes, OCI, OKE, OpenShift, vSphere. Example: [\"AWS\"]"
+    required: false
+    allowed_values:
+      - AWS
+      - Azure
+      - GCP
+      - Alibaba
+      - AKS
+      - EKS
+      - GKE
+      - Kubernetes
+      - OCI
+      - OKE
+      - OpenShift
+      - vSphere
+  # Other filters
+  resolution_reason:
+    type: array[string]
+    description: "Filter issues by resolution reason. Possible values: CONTROL_CHANGED, CONTROL_DISABLED, CONTROL_DELETED, EXCEPTION, FALSE_POSITIVE, WONT_FIX, OBJECT_DELETED, ISSUE_FIXED. Example: [\"CONTROL_CHANGED\"]"
+    required: false
+    allowed_values:
+      - CONTROL_CHANGED
+      - CONTROL_DISABLED
+      - CONTROL_DELETED
+      - EXCEPTION
+      - FALSE_POSITIVE
+      - WONT_FIX
+      - OBJECT_DELETED
+      - ISSUE_FIXED
+  note_contains:
+    type: string
+    description: "Search for issues with notes containing specific text. Example: \"fixed\""
+    required: false
+  source_rule_id:
+    type: string
+    description: "Filter issues by source rule ID. Example: \"rule-123\""
+    required: false
+  cloud_event_rule_source:
+    type: array[string]
+    description: "Filter issues by cloud event rule source. Possible values: WIZ, WIZ_SENSOR, GUARD_DUTY, SECURITY_COMMAND_CENTER, DEFENDER_FOR_CLOUD. Example: [\"WIZ\"]"
+    required: false
+    allowed_values:
+      - WIZ
+      - WIZ_SENSOR
+      - GUARD_DUTY
+      - SECURITY_COMMAND_CENTER
+      - DEFENDER_FOR_CLOUD
+  risk_equals_any:
+    type: array[string]
+    description: "Filter issues by any of the specified risk types. Example: [\"wct-id-4\"]"
+    required: false
+  risk_equals_all:
+    type: array[string]
+    description: "Filter issues that match all specified risk types. Example: [\"wct-id-4\"]"
+    required: false
+  # Ordering
+  order_direction:
+    type: string
+    description: "Order direction. Possible values: ASC, DESC. Example: \"DESC\""
+    required: false
+    allowed_values:
+      - ASC
+      - DESC
+    default: "DESC"
+  order_field:
+    type: string
+    description: "Order field. Possible values: ID, SEVERITY, CREATED_AT, RESOLVED_AT, STATUS_CHANGED_AT. Example: \"CREATED_AT\""
+    required: false
+    allowed_values:
+      - ID
+      - SEVERITY
+      - CREATED_AT
+      - RESOLVED_AT
+      - STATUS_CHANGED_AT
+    default: "CREATED_AT"
+
+# Output field definitions
+output_fields:
+  items:
+    type: array[object]
+    description: List of issues
+    fields:
+      id:
+        type: string
+        description: Issue ID
+      severity:
+        type: string
+        description: Issue severity (CRITICAL, HIGH, MEDIUM, LOW, INFORMATIONAL)
+      status:
+        type: string
+        description: Issue status (OPEN, IN_PROGRESS, RESOLVED, REJECTED)
+      type:
+        type: string
+        description: Issue type (TOXIC_COMBINATION, CLOUD_CONFIGURATION)
+      created_at:
+        type: string
+        description: Creation date (ISO 8601 format)
+      updated_at:
+        type: string
+        description: Last update date (ISO 8601 format)
+      resolved_at:
+        type: string
+        description: Resolution date (ISO 8601 format)
+      status_changed_at:
+        type: string
+        description: Date when status was last changed (ISO 8601 format)
+      due_at:
+        type: string
+        description: Due date (ISO 8601 format)
+  has_next_page:
+    type: boolean
+    description: Whether there are more results available
+  end_cursor:
+    type: string
+    description: Cursor for fetching the next page
+  total_count:
+    type: integer
+    description: Total number of issues matching the query
+
+# Default variables
+default_variables:
+  orderBy:
+    field: "CREATED_AT"
+    direction: "DESC"

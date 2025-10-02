@@ -161,7 +161,7 @@ mail_agent = Agent(
 )
 
 # Define code pipeline agent that chains the above agents
-code_pipeline_agent = SequentialAgent(
+search_agent = SequentialAgent(
     name="search_agent",
     sub_agents=[wiz_agent_path,search, mail_agent], 
     description="Executes a sequence of search , reviewing, and refactoring.",

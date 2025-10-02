@@ -14,8 +14,7 @@ from mcp.server.sse import SseServerTransport
 
 import base64
 import json
-import requests
-
+import requests,certifi
 import os
 from dotenv import load_dotenv
 load_dotenv()
@@ -474,7 +473,7 @@ def query_wiz_api(query, variables, dc):
         # result = requests.post(url=f"https://api.{dc}.app.wiz.io/graphql",
         #                        json=data, headers=HEADERS, proxies=proxyDict, timeout=180)
         result = requests.post(url=f"https://api.{dc}.app.wiz.io/graphql",
-                               json=data, headers=HEADERS, timeout=180)
+                               json=data, headers=HEADERS, timeout=180,verify=certifi.where())
 
     except requests.exceptions.HTTPError as e:
         print(f"<p>Wiz-API-Error (4xx/5xx): {str(e)}</p>")
@@ -507,7 +506,7 @@ def request_wiz_api_token(client_id, client_secret):
         #                         headers=HEADERS_AUTH, data=auth_payload,
         #                         proxies=proxyDict, timeout=180)
         response = requests.post(url="https://auth.app.wiz.io/oauth/token",
-                                headers=HEADERS_AUTH, data=auth_payload, timeout=180)
+                                headers=HEADERS_AUTH, data=auth_payload, timeout=180,verify=certifi.where())
 
     except requests.exceptions.HTTPError as e:
         print(f"<p>Error authenticating to Wiz (4xx/5xx): {str(e)}</p>")

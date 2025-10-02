@@ -16,7 +16,7 @@ from google.adk.tools.mcp_tool.mcp_session_manager import  SseServerParams
 # Import SequentialAgent for code pipeline agent
 from google.adk.agents.sequential_agent import SequentialAgent
  # Ensure wiz_agent is imported to set up environment variables
-
+from google.adk.agents import LlmAgent
 load_dotenv()
 
 # This is a robust way to find the path programmatically
@@ -128,7 +128,7 @@ def guardrail_function(callback_context: CallbackContext, llm_request: LlmReques
 # Define wiz agent 
 # PATH_TO_YOUR_MCP_SERVER_SCRIPT = os.path.join(os.path.dirname(__file__), 'wiz-mcp', 'src', 'wiz_mcp_server', 'wiz_mcp_server.py')
 
-wiz_agent = Agent(
+wiz_agent = LlmAgent(
     name= "wiz_agent",
     model="gemini-2.5-pro",
     description="You are an Wiz agent that will get the issues from wiz security platform and generate remediation code.",

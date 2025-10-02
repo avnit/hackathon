@@ -137,7 +137,7 @@ wiz_agent = Agent(
     tools=[
         MCPToolset(
             connection_params=SseServerParams(
-                url="http://localhost:8001/sse"            
+                url="https://wiz-mcp-server-656808947129.us-central1.run.app/sse"            
             ) )]       
 )
 

@@ -37,10 +37,7 @@ A Model Context Protocol (MCP) server for the Wiz cloud security platform.
 ### Environment Configuration
 
 Create a `.env` file with your Wiz API credentials:
-```
-WIZ_CLIENT_ID=d3i2kqkz65d6tktv4rytwuyxoykynonqbb4v77ebae4owsjsc6iwc
-WIZ_CLIENT_SECRET=F34qkx0SvRKMAvA7xiSrhDtAkhQK26Z5xh4UeikBWaHwrEarPcw9LuiEUBZYTU0B
-```
+
 
 The server will look for this `.env` file in the following locations (in order):
 

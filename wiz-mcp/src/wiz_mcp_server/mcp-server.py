@@ -4,7 +4,21 @@ import httpx
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
- 
+from typing import Optional
+import os
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+from typing import List, Optional
+
+from dotenv import load_dotenv
+from mcp.server.fastmcp import FastMCP
+
+from wiz_mcp_server.auth.auth import authenticate
+from wiz_mcp_server.utils.context import WizContext
+from wiz_mcp_server.utils.logger import get_logger
+
+
+
 load_dotenv()
  
 app = FastAPI(title="Wiz MCP Server")
@@ -37,8 +51,7 @@ async def get_wiz_token():
         data = resp.json()
         ACCESS_TOKEN = data["access_token"]
         return ACCESS_TOKEN
- 
-async def wiz_query(query: str, variables: dict = None):
+async def wiz_query(query: str, variables: Optional[dict] = None):
     token = await get_wiz_token()
     async with httpx.AsyncClient() as client:
         resp = await client.post(
@@ -47,6 +60,7 @@ async def wiz_query(query: str, variables: dict = None):
             headers={"Authorization": f"Bearer {token}"}
         )
         resp.raise_for_status()
+        return resp.json()
         return resp.json()
  
 # ---- 2. GraphQL Queries ----
@@ -174,3 +188,84 @@ async def mcp_endpoint(request: Request):
             },
             status_code=500
         )
+
+def load_environment(env_file_path: Optional[str] = None):
+    """
+    Load environment variables from a .env file if it exists.
+
+    Args:
+        env_file_path: Optional path to a .env file. If not provided, defaults to '.env' in the current directory.
+    """
+    important_vars = ["WIZ_CLIENT_ID", "WIZ_CLIENT_SECRET", "WIZ_API_URL", "WIZ_ENV"]
+    initial_vars = {var: os.environ.get(var) for var in important_vars}
+
+    if env_file_path and os.path.isfile(env_file_path):
+        dotenv_path = env_file_path
+    else:
+        default_path = os.path.join(os.getcwd(), ".env")
+        if os.path.isfile(default_path):
+            dotenv_path = default_path
+        else:
+            logger.info("No .env file found")
+            dotenv_path = None
+
+    # Load the .env file if found
+    if dotenv_path:
+        logger.info(f"Loading environment variables from: {dotenv_path}")
+        load_dotenv(dotenv_path)
+
+        # Log which variables were loaded
+        loaded = [var for var in important_vars
+                  if os.environ.get(var) and initial_vars[var] != os.environ.get(var)]
+        if loaded:
+            logger.info(f"Loaded variables: {', '.join(loaded)}")
+
+    # Log the current WIZ_ENV value
+    logger.info(f"Using Wiz environment: {os.environ.get('WIZ_ENV', 'app')}")
+
+
+_env_loaded = False
+SERVER_NAME = "Wiz MCP Server"
+logger = get_logger(SERVER_NAME)
+@asynccontextmanager
+def create_server(env_file_path=None) -> FastMCP:
+    """
+    Create a configured FastMCP server instance for the Wiz API.
+
+    This function creates and configures a FastMCP server with the appropriate
+    lifespan context manager and registers all available Wiz API tools.
+
+    Args:
+        env_file_path: Optional path to a .env file containing environment variables
+
+    Returns:
+        FastMCP: Configured FastMCP server instance ready to be run
+    """
+    global server, _env_loaded
+
+    # Only load environment if it hasn't been loaded yet or if a specific path is provided
+    if not _env_loaded or env_file_path:
+        load_environment(env_file_path)
+        _env_loaded = True
+
+    # Create the server instance
+    mcp = FastMCP(
+        SERVER_NAME,
+        lifespan=wiz_lifespan,
+    )
+
+    # Update the module-level server variable
+    server = mcp
+
+    return mcp
+
+
+# Initialize the server with default settings
+# This is used when the module is imported directly
+server = create_server()
+
+# Entry point for direct execution
+if __name__ == "__main__":
+    from wiz_mcp_server.cli import main
+
+    main()

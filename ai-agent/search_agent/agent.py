@@ -17,6 +17,7 @@ from google.adk.tools.mcp_tool.mcp_session_manager import  SseServerParams
 from google.adk.agents.sequential_agent import SequentialAgent
  # Ensure wiz_agent is imported to set up environment variables
 from google.adk.agents import LlmAgent
+import mcp
 load_dotenv()
 
 # This is a robust way to find the path programmatically
@@ -125,8 +126,22 @@ def guardrail_function(callback_context: CallbackContext, llm_request: LlmReques
         )
     return None
 
+# Define email tool
+mcp = mcp.
+from google.adk.tools import send_mail, SendMailParams
+@mcp.tool
+send_mail_params = SendMailParams(
+    smtp_server="smtp.example.com", 
+    smtp_port=587,
+    username="your_username",
+    password="your_password",
+    use_tls=True
+)
+send_mail = send_mail.with_params(send_mail_params)
+
 # Define wiz agent 
 # PATH_TO_YOUR_MCP_SERVER_SCRIPT = os.path.join(os.path.dirname(__file__), 'wiz-mcp', 'src', 'wiz_mcp_server', 'wiz_mcp_server.py')
+#wiz_uc_studio_params = SseServerParams(
 
 wiz_agent = LlmAgent(
     name= "wiz_agent",
@@ -168,6 +183,7 @@ search_agent = SequentialAgent(
     sub_agents=[wiz_agent,gemini_agent, mail_agent], 
     description="Executes a sequence of search , reviewing, and refactoring.",
     # The agents will run in the order provided: serch -> wiz_agent_path -> Mail agent 
+    tools=[send_mail]  # Optionally, the pipeline agent can also have its own tools
 )
 
 # For ADK tools compatibility, the root agent must be named `root_agent`
